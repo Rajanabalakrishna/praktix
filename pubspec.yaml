@@ -43,6 +43,11 @@ dependencies:
   dartz: ^0.10.1
   shared_preferences: ^2.5.5
   webview_flutter: ^4.13.1
+  flutter_bloc: ^9.1.1
+  dio: ^5.9.2
+  get_it: ^9.2.1
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
 
 
   
