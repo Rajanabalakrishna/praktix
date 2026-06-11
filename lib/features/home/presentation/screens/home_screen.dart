@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:praktix/core/di/injection_container.dart';
 
 import 'package:praktix/features/auth/presentation/providers/auth_providers.dart';
 import 'package:praktix/features/auth/presentation/screens/signup_screen.dart';
+import 'package:praktix/features/feed/presentation/blocs/expert_feed_bloc.dart';
+import 'package:praktix/features/feed/presentation/pages/expert_feed_page.dart';
 import 'package:praktix/features/home/domain/entities/expert_entity.dart';
 import 'package:praktix/features/home/domain/entities/job_entity.dart';
 import 'package:praktix/features/home/domain/entities/program_entity.dart';
@@ -95,7 +99,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         index: _navIndex,
         children: [
           _HomeTab(query: _query, searchController: _searchController),
-          const _FeedTabPlaceholder(),
+          BlocProvider(                      // ← replace with this
+            create: (_) => sl<ExpertFeedBloc>(),
+            child: const ExpertFeedPage(),
+          ),
           const _ProgramsTabPlaceholder(),
           const _JobsTabPlaceholder(),
           const _ProfileTabPlaceholder(),

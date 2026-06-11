@@ -1,5 +1,3 @@
-
-
 import 'package:equatable/equatable.dart';
 
 abstract class Failure extends Equatable {
@@ -42,6 +40,11 @@ class TooManyRequestsFailure extends Failure {
 class NetworkFailure extends Failure {
   const NetworkFailure()
       : super('No internet connection. Check your network and retry.');
+}
+
+class ServerFailure extends Failure {
+  const ServerFailure([String msg = 'Server error. Please try again.'])
+      : super(msg);
 }
 
 class UnknownFailure extends Failure {
