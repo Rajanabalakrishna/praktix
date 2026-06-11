@@ -1,28 +1,33 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+//import 'package:praktix/features/auth/presentation/providers/auth_notifier.dart';
+import 'package:praktix/features/auth/presentation/providers/auth_providers.dart';
+import 'package:praktix/features/auth/presentation/screens/login_screen.dart';
+import 'package:praktix/features/home/presentation/screens/home_screen.dart';
 
-class OnlyExpertsSplashView extends StatefulWidget {
-  final Widget nextScreen;
+import '../../../auth/presentation/providers/auth_notifiers.dart';
+
+class OnlyExpertsSplashView extends ConsumerStatefulWidget {
   final Duration minimumDuration;
 
   const OnlyExpertsSplashView({
     super.key,
-    required this.nextScreen,
     this.minimumDuration = const Duration(seconds: 2),
   });
 
   @override
-  State<OnlyExpertsSplashView> createState() => _OnlyExpertsSplashViewState();
+  ConsumerState<OnlyExpertsSplashView> createState() =>
+      _OnlyExpertsSplashViewState();
 }
 
-class _OnlyExpertsSplashViewState extends State<OnlyExpertsSplashView>
+class _OnlyExpertsSplashViewState extends ConsumerState<OnlyExpertsSplashView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _progressController;
-  Timer? _doneTimer;
+  bool _navDone = false; // guard: navigate only once
 
   static const _bg = Color(0xFFFFF8F6);
-  static const _surfaceDim = Color(0xFFEFD4D0);
   static const _onSurfaceVariant = Color(0xFF5A403C);
   static const _surfaceTrack = Color(0xFFF8DCD8);
   static const _midnightNavy = Color(0xFF0F172A);
@@ -31,33 +36,59 @@ class _OnlyExpertsSplashViewState extends State<OnlyExpertsSplashView>
   @override
   void initState() {
     super.initState();
-
     _progressController = AnimationController(
       vsync: this,
       duration: widget.minimumDuration,
     )..forward();
-
-    _doneTimer = Timer(widget.minimumDuration, () {
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => widget.nextScreen,
-        ),
-      );
-    });
   }
 
   @override
   void dispose() {
-    _doneTimer?.cancel();
     _progressController.dispose();
     super.dispose();
   }
 
+  /// Called by ref.listen once auth state resolves AND minimum duration is done.
+  void _navigate(AuthState state) {
+    if (_navDone || !mounted) return;
+
+    // Wait until the progress bar animation finishes before navigating
+    final remaining = widget.minimumDuration -
+        Duration(
+          milliseconds:
+          (_progressController.value * widget.minimumDuration.inMilliseconds)
+              .toInt(),
+        );
+
+    Future.delayed(remaining < Duration.zero ? Duration.zero : remaining, () {
+      if (!mounted || _navDone) return;
+      _navDone = true;
+
+      final route = PageRouteBuilder(
+        pageBuilder: (_, __, ___) =>
+        state is AuthAuthenticated ? const HomeScreen() : const LoginScreen(),
+        transitionsBuilder: (_, anim, __, child) =>
+            FadeTransition(opacity: anim, child: child),
+        transitionDuration: const Duration(milliseconds: 320),
+      );
+
+      Navigator.of(context).pushReplacement(route);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Listen — fires whenever authNotifierProvider emits a new value
+    ref.listen<AsyncValue<AuthState>>(authNotifierProvider, (_, next) {
+      next.whenData(_navigate);
+    });
+
+    // Also handle if auth is already resolved on first build (e.g. SharedPrefs loaded)
+    final authState = ref.watch(authNotifierProvider);
+    if (!authState.isLoading) {
+      authState.whenData(_navigate);
+    }
+
     final isDesktop = MediaQuery.sizeOf(context).width >= 768;
 
     return Scaffold(
@@ -133,6 +164,8 @@ class _OnlyExpertsSplashViewState extends State<OnlyExpertsSplashView>
     );
   }
 }
+
+// ── Sub-widgets — completely unchanged ───────────────────────────────────────
 
 class _SplashBackground extends StatelessWidget {
   const _SplashBackground();
@@ -222,20 +255,16 @@ class _ProgressSection extends StatelessWidget {
               height: 3,
               child: Stack(
                 children: [
-                  Positioned.fill(
-                    child: ColoredBox(color: trackColor),
-                  ),
+                  Positioned.fill(child: ColoredBox(color: trackColor)),
                   Positioned.fill(
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: AnimatedBuilder(
                         animation: controller,
-                        builder: (context, _) {
-                          return FractionallySizedBox(
-                            widthFactor: controller.value.clamp(0.0, 1.0),
-                            child: ColoredBox(color: fillColor),
-                          );
-                        },
+                        builder: (context, _) => FractionallySizedBox(
+                          widthFactor: controller.value.clamp(0.0, 1.0),
+                          child: ColoredBox(color: fillColor),
+                        ),
                       ),
                     ),
                   ),
