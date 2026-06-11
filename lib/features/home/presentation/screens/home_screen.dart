@@ -17,6 +17,8 @@ import 'package:praktix/features/home/domain/entities/workshop_entity.dart';
 import 'package:praktix/features/home/presentation/providers/home_providers.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../programs/presentation/screens/programs_screen.dart';
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const _primary              = Color(0xFF0F172A);
 const _secondary            = Color(0xFF4b41e1);
@@ -103,7 +105,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             create: (_) => sl<ExpertFeedBloc>(),
             child: const ExpertFeedPage(),
           ),
-          const _ProgramsTabPlaceholder(),
+          const ProgramsScreen(),
           const _JobsTabPlaceholder(),
           const _ProfileTabPlaceholder(),
         ],

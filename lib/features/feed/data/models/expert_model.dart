@@ -14,6 +14,7 @@ class ExpertModel extends ExpertEntity {
     required super.rating,
     required super.totalStudents,
     required super.category,
+    required super.isPremium, // ← ADD THIS
   });
 
   factory ExpertModel.fromDummyJson({
@@ -48,6 +49,7 @@ class ExpertModel extends ExpertEntity {
       rating: rating,
       totalStudents: stock * 120,
       category: category,
+      isPremium: index % 2 != 0, // ← index 1,3,5... = premium
     );
   }
 

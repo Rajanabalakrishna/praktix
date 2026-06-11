@@ -13,6 +13,7 @@ class ExpertEntity extends Equatable {
   final double rating;
   final int totalStudents;
   final String category;
+  final bool isPremium;
 
   const ExpertEntity({
     required this.id,
@@ -27,12 +28,14 @@ class ExpertEntity extends Equatable {
     required this.rating,
     required this.totalStudents,
     required this.category,
+    this.isPremium=false
   });
 
   ExpertEntity copyWith({
     bool? isLiked,
     bool? isSaved,
     int? likeCount,
+    bool? isPremium,
   }) {
     return ExpertEntity(
       id: id,
@@ -45,6 +48,7 @@ class ExpertEntity extends Equatable {
       isLiked: isLiked ?? this.isLiked,
       isSaved: isSaved ?? this.isSaved,
       rating: rating,
+      isPremium: isPremium ?? this.isPremium,
       totalStudents: totalStudents,
       category: category,
     );
@@ -54,6 +58,6 @@ class ExpertEntity extends Equatable {
   List<Object?> get props => [
     id, expertName, expertTitle, expertImage,
     videoTitle, videoThumbnail, likeCount,
-    isLiked, isSaved, rating, totalStudents, category,
+    isLiked, isSaved, rating, totalStudents, category,isPremium
   ];
 }
