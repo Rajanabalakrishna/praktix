@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612000703656",
+    "project_id": "praktix-2cb43",
+    "storage_bucket": "praktix-2cb43.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612000703656:android:6fbe3cb08d44eab9b54e9d",
+        "android_client_info": {
+          "package_name": "com.example.praktix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2ZwX6OzfHyeGCn_3nQFlB9XdfOUkR_O0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
