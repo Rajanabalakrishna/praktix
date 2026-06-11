@@ -4,19 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:praktix/core/di/injection_container.dart';
-
+import 'package:praktix/features/application/presentation/bloc/application_bloc.dart';
+import 'package:praktix/features/application/presentation/pages/application_form_page.dart';
 import 'package:praktix/features/auth/presentation/providers/auth_providers.dart';
 import 'package:praktix/features/auth/presentation/screens/signup_screen.dart';
 import 'package:praktix/features/feed/presentation/blocs/expert_feed_bloc.dart';
 import 'package:praktix/features/feed/presentation/pages/expert_feed_page.dart';
 import 'package:praktix/features/home/domain/entities/expert_entity.dart';
-import 'package:praktix/features/home/domain/entities/job_entity.dart';
 import 'package:praktix/features/home/domain/entities/program_entity.dart';
 import 'package:praktix/features/home/domain/entities/video_entity.dart';
 import 'package:praktix/features/home/domain/entities/workshop_entity.dart';
 import 'package:praktix/features/home/presentation/providers/home_providers.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../../core/services/chatbot.dart';
+import '../../../profile_screen/profile_screen.dart';
 import '../../../programs/presentation/screens/programs_screen.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -97,17 +99,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: _bgSurface,
       extendBody: true,
+
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 70.0), // Pushes it above your bottom nav
+        child: FloatingActionButton(
+          onPressed: () => _showChatbotSheet(context),
+          backgroundColor: _secondary,
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: const Icon(Icons.smart_toy_rounded, color: Colors.white),
+        ),
+      ),
       body: IndexedStack(
         index: _navIndex,
         children: [
           _HomeTab(query: _query, searchController: _searchController),
-          BlocProvider(                      // ← replace with this
+          BlocProvider(
             create: (_) => sl<ExpertFeedBloc>(),
             child: const ExpertFeedPage(),
           ),
           const ProgramsScreen(),
-          const _JobsTabPlaceholder(),
-          const _ProfileTabPlaceholder(),
+
+          BlocProvider(
+            create: (_) => sl<ApplicationBloc>(),
+            child: const ApplicationFormPage(
+              programTitle: 'Select a Program',
+            ),
+          ),
+          const ExpertProfileScreen(),
         ],
       ),
       bottomNavigationBar: _BottomNav(
@@ -125,11 +144,11 @@ class _BottomNav extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   static const _items = [
-    (icon: Icons.home_rounded,        label: 'Home'),
-    (icon: Icons.play_circle_rounded, label: 'Feed'),
-    (icon: Icons.school_rounded,      label: 'Programs'),
-    (icon: Icons.work_rounded,        label: 'Jobs'),
-    (icon: Icons.person_rounded,      label: 'Profile'),
+    (icon: Icons.home_rounded,                   label: 'Home'),
+    (icon: Icons.play_circle_rounded,             label: 'Feed'),
+    (icon: Icons.school_rounded,                  label: 'Programs'),
+    (icon: Icons.assignment_turned_in_rounded,    label: 'Apply'),
+    (icon: Icons.person_rounded,                  label: 'Profile'),
   ];
 
   @override
@@ -211,13 +230,11 @@ class _HomeTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final screenW = MediaQuery.of(context).size.width;
-
+    final screenW     = MediaQuery.of(context).size.width;
     final allExperts   = ref.watch(expertsProvider);
     final allPrograms  = ref.watch(programsProvider);
     final allVideos    = ref.watch(videosProvider);
     final allWorkshops = ref.watch(workshopsProvider);
-    final allJobs      = ref.watch(jobsProvider);
 
     // ── Live search filter ────────────────────────────────────────────────────
     final experts = allExperts
@@ -230,14 +247,9 @@ class _HomeTab extends ConsumerWidget {
         _match(v.expertName)).toList();
     final workshops = allWorkshops
         .where((w) => _match(w.title) || _match(w.host)).toList();
-    final jobs = allJobs
-        .where((j) => _match(j.title) || _match(j.company) ||
-        _match(j.type)).toList();
 
     return CustomScrollView(
-      // ClampingScrollPhysics removes bounce overhead → smoother on Android
       physics: const ClampingScrollPhysics(),
-      // Pre-renders 300px below viewport → zero pop-in lag on scroll
       cacheExtent: 300,
       slivers: [
         // ── App Bar ───────────────────────────────────────────────────────────
@@ -305,7 +317,6 @@ class _HomeTab extends ConsumerWidget {
                       hintStyle: _inter(color: _outline),
                       prefixIcon: const Icon(Icons.search_rounded,
                           color: _outline),
-                      // Search button OR clear button
                       suffixIcon: query.isNotEmpty
                           ? IconButton(
                         icon: const Icon(Icons.close_rounded,
@@ -335,8 +346,7 @@ class _HomeTab extends ConsumerWidget {
                   experts.isEmpty &&
                   programs.isEmpty &&
                   videos.isEmpty &&
-                  workshops.isEmpty &&
-                  jobs.isEmpty)
+                  workshops.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 40),
@@ -401,15 +411,7 @@ class _HomeTab extends ConsumerWidget {
                 const SizedBox(height: 28),
               ],
 
-              // ── AI Programs ───────────────────────────────────────────────
-              if (programs.isNotEmpty) ...[
-                _SectionHeader(title: 'AI Programs', onSeeAll: () {}),
-                ...programs.map((p) => Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: RepaintBoundary(child: _ProgramCard(program: p)),
-                )),
-                const SizedBox(height: 28),
-              ],
+
 
               // ── Workshops ─────────────────────────────────────────────────
               if (workshops.isNotEmpty) ...[
@@ -432,12 +434,12 @@ class _HomeTab extends ConsumerWidget {
                 const SizedBox(height: 28),
               ],
 
-              // ── Career Opportunities ──────────────────────────────────────
-              if (jobs.isNotEmpty) ...[
-                _SectionHeader(title: 'Career Opportunities', onSeeAll: () {}),
-                ...jobs.map((j) => Padding(
+              // ── Apply to a Program ────────────────────────────────────────
+              if (programs.isNotEmpty) ...[
+                _SectionHeader(title: 'Apply to a Program', onSeeAll: () {}),
+                ...programs.take(3).map((p) => Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: RepaintBoundary(child: _JobCard(job: j)),
+                  child: _ApplyProgramCard(program: p),
                 )),
               ],
 
@@ -659,10 +661,7 @@ class _VideoCard extends ConsumerWidget {
     _openVideoDialog(context);
   }
 
-  /// Full-screen dialog with embedded YouTube WebView player
   void _openVideoDialog(BuildContext context) {
-    // Build an HTML page that embeds YouTube with proper iframe attributes.
-    // loadHtmlString() bypasses the autoplay restriction that loadRequest() hits.
     final embedUrl =
         '${video.videoUrl}?autoplay=1&rel=0&modestbranding=1&playsinline=1';
 
@@ -674,19 +673,11 @@ class _VideoCard extends ConsumerWidget {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; width: 100vw; height: 100vh; }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+    iframe { width: 100%; height: 100%; border: none; }
   </style>
 </head>
 <body>
-  <iframe
-    src="$embedUrl"
-    allow="autoplay; fullscreen; encrypted-media"
-    allowfullscreen>
-  </iframe>
+  <iframe src="$embedUrl" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
 </body>
 </html>
 ''';
@@ -694,7 +685,7 @@ class _VideoCard extends ConsumerWidget {
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
-      ..loadHtmlString(html);   // ✅ loadHtmlString instead of loadRequest
+      ..loadHtmlString(html);
 
     showDialog<void>(
       context: context,
@@ -708,7 +699,6 @@ class _VideoCard extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 color: const Color(0xFF1A1A2E),
@@ -741,15 +731,12 @@ class _VideoCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              // 16:9 player
               AspectRatio(
                 aspectRatio: 16 / 9,
                 child: WebViewWidget(controller: controller),
               ),
-              // Footer
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 color: const Color(0xFF1A1A2E),
                 child: Row(
                   children: [
@@ -824,10 +811,9 @@ class _VideoCard extends ConsumerWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
-          mainAxisSize: MainAxisSize.min,   // ✅ KEY FIX — don't force max height
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thumbnail
             SizedBox(
               height: 130,
               child: Stack(
@@ -928,7 +914,6 @@ class _VideoCard extends ConsumerWidget {
                 ],
               ),
             ),
-            // Info
             Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -1298,133 +1283,132 @@ class _WorkshopCard extends StatelessWidget {
   }
 }
 
-// ── Job Card ──────────────────────────────────────────────────────────────────
-class _JobCard extends StatelessWidget {
-  const _JobCard({required this.job});
-  final JobEntity job;
+// ── Apply Program Card ────────────────────────────────────────────────────────
+// ── Apply Program Card ────────────────────────────────────────────────────────
+class _ApplyProgramCard extends StatelessWidget {
+  const _ApplyProgramCard({required this.program});
+  final ProgramEntity program;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _surfaceContainerHigh),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundImage: NetworkImage(job.logoUrl),
-            backgroundColor: _surfaceContainerHigh,
+  void _navigateToForm(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) => sl<ApplicationBloc>(),
+          child: ApplicationFormPage(
+            programTitle: program.title,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(job.title,
-                    style: _hanken(
-                        size: 15, weight: FontWeight.w700, color: _primary)),
-                const SizedBox(height: 2),
-                Text('${job.company} · ${job.location}',
-                    style: _inter(size: 12, color: _onSurfaceVariant)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    _Chip(job.type,
-                        bgColor: _secondary.withValues(alpha: 0.10),
-                        textColor: _secondary),
-                    if (job.isRemote)
-                      const _Chip('Remote',
-                          bgColor: Color(0xFFDCFCE7),
-                          textColor: Color(0xFF166534)),
-                    _Chip(job.salary,
-                        bgColor: _surfaceContainerLow,
-                        textColor: _onSurfaceVariant),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(job.postedAgo, style: _inter(size: 10, color: _outline)),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () {},
-                style: FilledButton.styleFrom(
-                  backgroundColor: _secondary,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  textStyle: _inter(
-                      size: 12, weight: FontWeight.w600, color: Colors.white),
-                ),
-                child: const Text('Apply'),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip(this.label,
-      {required this.bgColor, required this.textColor});
-  final String label;
-  final Color bgColor;
-  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
+    final accent = _hexColor(program.accentHex);
+    return GestureDetector(
+      onTap: () => _navigateToForm(context), // ← tap anywhere on card opens form
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _surfaceContainerHigh),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                iconFromName(program.iconName),
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // Title + duration + certificate
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    program.title,
+                    style: _hanken(
+                        size: 15,
+                        weight: FontWeight.w700,
+                        color: _primary),
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule_rounded,
+                          size: 12, color: _outline),
+                      const SizedBox(width: 4),
+                      Text(program.duration,
+                          style: _inter(size: 11, color: _outline)),
+                      if (program.hasCertificate) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Certificate',
+                            style: _inter(
+                              size: 9,
+                              weight: FontWeight.w700,
+                              color: const Color(0xFF166534),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            // Apply button
+            FilledButton(
+              onPressed: () => _navigateToForm(context),
+              style: FilledButton.styleFrom(
+                backgroundColor: _secondary,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                textStyle: _inter(
+                    size: 12,
+                    weight: FontWeight.w600,
+                    color: Colors.white),
+              ),
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
       ),
-      child: Text(label,
-          style: _inter(size: 10, weight: FontWeight.w600, color: textColor)),
     );
   }
 }
 
 // ── Placeholder tabs ──────────────────────────────────────────────────────────
-class _FeedTabPlaceholder extends StatelessWidget {
-  const _FeedTabPlaceholder();
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Video Feed — coming next'));
-}
-
-class _ProgramsTabPlaceholder extends StatelessWidget {
-  const _ProgramsTabPlaceholder();
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Programs Screen'));
-}
-
-class _JobsTabPlaceholder extends StatelessWidget {
-  const _JobsTabPlaceholder();
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Jobs Screen'));
-}
-
 class _ProfileTabPlaceholder extends ConsumerWidget {
   const _ProfileTabPlaceholder();
   @override
@@ -1450,4 +1434,38 @@ class _ProfileTabPlaceholder extends ConsumerWidget {
 Color _hexColor(String hex) {
   final h = hex.replaceAll('#', '');
   return Color(int.parse('FF$h', radix: 16));
+}
+
+IconData iconFromName(String name) {
+  switch (name) {
+    case 'health_and_safety': return Icons.health_and_safety_rounded;
+    case 'terminal':          return Icons.terminal_rounded;
+    case 'military_tech':     return Icons.military_tech_rounded;
+    case 'security':          return Icons.security_rounded;
+    default:                  return Icons.business_center_rounded;
+  }
+}
+
+void _showChatbotSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true, // Allows the sheet to adjust for the keyboard
+    backgroundColor: Colors.transparent,
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom, // Pushes up when keyboard opens
+      ),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.65, // Takes up 65% of the screen
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: const ClipRRect(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          child: SmallChatbotWidget(),
+        ),
+      ),
+    ),
+  );
 }

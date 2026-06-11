@@ -22,6 +22,7 @@ class WeakPasswordFailure extends Failure {
       : super('Password must be at least 8 characters.');
 }
 
+
 class WrongPasswordFailure extends Failure {
   const WrongPasswordFailure()
       : super('Incorrect password. Please try again.');
