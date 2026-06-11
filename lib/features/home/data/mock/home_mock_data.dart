@@ -4,27 +4,50 @@ import 'package:praktix/features/home/domain/entities/program_entity.dart';
 import 'package:praktix/features/home/domain/entities/video_entity.dart';
 import 'package:praktix/features/home/domain/entities/workshop_entity.dart';
 
-// Real free-to-use YouTube embeddable study videos
-const _yt1 = 'https://www.youtube.com/embed/aircAruvnKk'; // 3Blue1Brown Neural Networks
-const _yt2 = 'https://www.youtube.com/embed/ukzFI9rgwfU'; // ML full course
-const _yt3 = 'https://www.youtube.com/embed/7eh4d6sabA0'; // Prompt Engineering
-const _yt4 = 'https://www.youtube.com/embed/GwIo3gDZCVQ'; // LLM intro
-const _yt5 = 'https://www.youtube.com/embed/PaCmpygFfXo'; // Deep Learning
+// ── YouTube embed URLs ────────────────────────────────────────────────────────
+const _yt1 = 'https://www.youtube.com/embed/aircAruvnKk';
+const _yt2 = 'https://www.youtube.com/embed/ukzFI9rgwfU';
+const _yt3 = 'https://www.youtube.com/embed/7eh4d6sabA0';
+const _yt4 = 'https://www.youtube.com/embed/GwIo3gDZCVQ';
+const _yt5 = 'https://www.youtube.com/embed/PaCmpygFfXo';
 
-// Picsum stable seeds for thumbnails / avatars
-String _thumb(int seed) =>
-    'https://picsum.photos/seed/vid$seed/400/220';
-String _avatar(int seed) =>
-    'https://picsum.photos/seed/exp$seed/100/100';
-String _prog(int seed) =>
-    'https://picsum.photos/seed/prog$seed/200/140';
+// ── Human face avatars (randomuser.me — always returns real human photos) ─────
+// gender: male / female  |  seed: any string for consistent same photo
+String _female(String seed) =>
+    'https://randomuser.me/api/portraits/women/${seed.hashCode.abs() % 50 + 1}.jpg';
+String _male(String seed) =>
+    'https://randomuser.me/api/portraits/men/${seed.hashCode.abs() % 50 + 1}.jpg';
+
+// ── Video thumbnails — use YouTube's own thumbnail CDN (always topic-relevant) ─
+// Format: https://img.youtube.com/vi/{VIDEO_ID}/hqdefault.jpg
+const _thumb1 = 'https://img.youtube.com/vi/aircAruvnKk/hqdefault.jpg';
+const _thumb2 = 'https://img.youtube.com/vi/ukzFI9rgwfU/hqdefault.jpg';
+const _thumb3 = 'https://img.youtube.com/vi/7eh4d6sabA0/hqdefault.jpg';
+const _thumb4 = 'https://img.youtube.com/vi/GwIo3gDZCVQ/hqdefault.jpg';
+const _thumb5 = 'https://img.youtube.com/vi/PaCmpygFfXo/hqdefault.jpg';
+
+// ── Workshop / program banners — topic-relevant Unsplash images ───────────────
+const _workshopImg1 =
+    'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=160&fit=crop'; // AI/tech
+const _workshopImg2 =
+    'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&h=160&fit=crop'; // ML brain
+const _workshopImg3 =
+    'https://images.unsplash.com/photo-1555255707-c07966088b7b?w=400&h=160&fit=crop'; // code screen
+
+// ── Company logos — use Clearbit logo API (returns real company logos) ────────
+const _logoDeepmind  = 'https://logo.clearbit.com/deepmind.com';
+const _logoOpenAI    = 'https://logo.clearbit.com/openai.com';
+const _logoAnthropic = 'https://logo.clearbit.com/anthropic.com';
+const _logoCloudflare= 'https://logo.clearbit.com/cloudflare.com';
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 final mockExperts = <ExpertEntity>[
   ExpertEntity(
     id: 'e1',
     name: 'Dr. Sarah Jenkins',
     title: 'AI Strategy Consultant',
-    imageUrl: _avatar(1),
+    imageUrl: _female('sarah'),       // ✅ real female face
     tags: ['Generative AI', 'Leadership'],
     isVerified: true,
     rating: 4.9,
@@ -34,7 +57,7 @@ final mockExperts = <ExpertEntity>[
     id: 'e2',
     name: 'Marcus Chen',
     title: 'VP of Machine Learning',
-    imageUrl: _avatar(2),
+    imageUrl: _male('marcus'),        // ✅ real male face
     tags: ['LLMs', 'Architecture'],
     isVerified: true,
     rating: 4.8,
@@ -44,7 +67,7 @@ final mockExperts = <ExpertEntity>[
     id: 'e3',
     name: 'Elena Rodriguez',
     title: 'Applied Prompt Engineer',
-    imageUrl: _avatar(3),
+    imageUrl: _female('elena'),       // ✅ real female face
     tags: ['NLP', 'UX Research'],
     isVerified: false,
     rating: 4.7,
@@ -54,7 +77,7 @@ final mockExperts = <ExpertEntity>[
     id: 'e4',
     name: 'Priya Sharma',
     title: 'Data Science Lead',
-    imageUrl: _avatar(4),
+    imageUrl: _female('priya'),       // ✅ real female face
     tags: ['Python', 'Analytics'],
     isVerified: true,
     rating: 4.9,
@@ -64,7 +87,7 @@ final mockExperts = <ExpertEntity>[
     id: 'e5',
     name: 'James Okafor',
     title: 'Cybersecurity Architect',
-    imageUrl: _avatar(5),
+    imageUrl: _male('james'),         // ✅ real male face
     tags: ['Security', 'Cloud'],
     isVerified: true,
     rating: 4.8,
@@ -125,8 +148,8 @@ final mockVideos = <VideoEntity>[
     id: 'v1',
     title: 'Neural Networks Explained Visually',
     expertName: 'Dr. Sarah Jenkins',
-    expertImageUrl: _avatar(1),
-    thumbnailUrl: _thumb(1),
+    expertImageUrl: _female('sarah'),
+    thumbnailUrl: _thumb1,            // ✅ actual YouTube thumbnail
     videoUrl: _yt1,
     duration: '3:47',
     isPremium: false,
@@ -137,8 +160,8 @@ final mockVideos = <VideoEntity>[
     id: 'v2',
     title: 'Machine Learning Full Crash Course',
     expertName: 'Marcus Chen',
-    expertImageUrl: _avatar(2),
-    thumbnailUrl: _thumb(2),
+    expertImageUrl: _male('marcus'),
+    thumbnailUrl: _thumb2,            // ✅ actual YouTube thumbnail
     videoUrl: _yt2,
     duration: '8:12',
     isPremium: true,
@@ -149,8 +172,8 @@ final mockVideos = <VideoEntity>[
     id: 'v3',
     title: 'Master Prompt Engineering',
     expertName: 'Elena Rodriguez',
-    expertImageUrl: _avatar(3),
-    thumbnailUrl: _thumb(3),
+    expertImageUrl: _female('elena'),
+    thumbnailUrl: _thumb3,
     videoUrl: _yt3,
     duration: '5:22',
     isPremium: false,
@@ -161,8 +184,8 @@ final mockVideos = <VideoEntity>[
     id: 'v4',
     title: 'How Large Language Models Work',
     expertName: 'Priya Sharma',
-    expertImageUrl: _avatar(4),
-    thumbnailUrl: _thumb(4),
+    expertImageUrl: _female('priya'),
+    thumbnailUrl: _thumb4,
     videoUrl: _yt4,
     duration: '6:05',
     isPremium: true,
@@ -173,8 +196,8 @@ final mockVideos = <VideoEntity>[
     id: 'v5',
     title: 'Deep Learning in 5 Minutes',
     expertName: 'James Okafor',
-    expertImageUrl: _avatar(5),
-    thumbnailUrl: _thumb(5),
+    expertImageUrl: _male('james'),
+    thumbnailUrl: _thumb5,
     videoUrl: _yt5,
     duration: '4:58',
     isPremium: false,
@@ -192,7 +215,7 @@ final mockWorkshops = <WorkshopEntity>[
     time: '3:00 PM IST',
     isFree: true,
     spotsLeft: 12,
-    imageUrl: _prog(1),
+    imageUrl: _workshopImg1,          // ✅ AI-relevant tech image
   ),
   WorkshopEntity(
     id: 'w2',
@@ -202,7 +225,7 @@ final mockWorkshops = <WorkshopEntity>[
     time: '6:00 PM IST',
     isFree: false,
     spotsLeft: 5,
-    imageUrl: _prog(2),
+    imageUrl: _workshopImg2,          // ✅ ML brain image
   ),
   WorkshopEntity(
     id: 'w3',
@@ -212,7 +235,7 @@ final mockWorkshops = <WorkshopEntity>[
     time: '4:30 PM IST',
     isFree: true,
     spotsLeft: 28,
-    imageUrl: _prog(3),
+    imageUrl: _workshopImg3,          // ✅ coding screen image
   ),
 ];
 
@@ -224,7 +247,7 @@ final mockJobs = <JobEntity>[
     location: 'London, UK',
     type: 'Full-time',
     salary: '\$160K – \$200K',
-    logoUrl: _avatar(10),
+    logoUrl: _logoDeepmind,           // ✅ real DeepMind logo
     isRemote: true,
     postedAgo: '2 days ago',
   ),
@@ -235,7 +258,7 @@ final mockJobs = <JobEntity>[
     location: 'San Francisco',
     type: 'Full-time',
     salary: '\$180K – \$220K',
-    logoUrl: _avatar(11),
+    logoUrl: _logoOpenAI,             // ✅ real OpenAI logo
     isRemote: false,
     postedAgo: '1 day ago',
   ),
@@ -246,7 +269,7 @@ final mockJobs = <JobEntity>[
     location: 'Remote',
     type: 'Contract',
     salary: '\$120K – \$140K',
-    logoUrl: _avatar(12),
+    logoUrl: _logoAnthropic,          // ✅ real Anthropic logo
     isRemote: true,
     postedAgo: '5 hours ago',
   ),
@@ -257,7 +280,7 @@ final mockJobs = <JobEntity>[
     location: 'Austin, TX',
     type: 'Full-time',
     salary: '\$100K – \$130K',
-    logoUrl: _avatar(13),
+    logoUrl: _logoCloudflare,         // ✅ real Cloudflare logo
     isRemote: false,
     postedAgo: '3 days ago',
   ),

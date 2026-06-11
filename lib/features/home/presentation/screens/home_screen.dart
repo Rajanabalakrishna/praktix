@@ -13,49 +13,52 @@ import 'package:praktix/features/home/domain/entities/workshop_entity.dart';
 import 'package:praktix/features/home/presentation/providers/home_providers.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-// ── Design tokens (matches HTML theme) ───────────────────────────────────────
-const _primary = Color(0xFF0F172A);       // midnight navy
-const _secondary = Color(0xFF4b41e1);     // indigo
-const _secondaryContainer = Color(0xFF645efb);
-const _onSurfaceVariant = Color(0xFF45464D);
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const _primary              = Color(0xFF0F172A);
+const _secondary            = Color(0xFF4b41e1);
+const _onSurfaceVariant     = Color(0xFF45464D);
 const _surfaceContainerHigh = Color(0xFFEAE7E9);
-const _surfaceContainerLow = Color(0xFFF6F3F5);
-const _expertVerify = Color(0xFF0EA5E9);
-const _premiumGold = Color(0xFFB45309);
-const _premiumGoldLight = Color(0xFFFEF3C7);
-const _error = Color(0xFFBA1A1A);
-const _bgSurface = Color(0xFFFCF8FA);
-const _outline = Color(0xFF76777D);
+const _surfaceContainerLow  = Color(0xFFF6F3F5);
+const _expertVerify         = Color(0xFF0EA5E9);
+const _premiumGold          = Color(0xFFB45309);
+const _premiumGoldLight     = Color(0xFFFEF3C7);
+const _error                = Color(0xFFBA1A1A);
+const _bgSurface            = Color(0xFFFCF8FA);
+const _outline              = Color(0xFF76777D);
 
-TextStyle _hanken(
-    {double size = 14,
-      FontWeight weight = FontWeight.w400,
-      Color color = _primary,
-      double? letterSpacing,
-      double height = 1.4}) =>
-    GoogleFonts.hankenGrotesk(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        letterSpacing: letterSpacing,
-        height: height);
+// ── Responsive helpers ────────────────────────────────────────────────────────
+double _expertCardWidth(double screenW)   => screenW < 400 ? screenW * 0.55 : 200;
+double _videoCardWidth(double screenW)    => screenW < 400 ? screenW * 0.62 : 220;
+double _workshopCardWidth(double screenW) => screenW < 400 ? screenW * 0.70 : 240;
 
-TextStyle _inter(
-    {double size = 14,
-      FontWeight weight = FontWeight.w400,
-      Color color = _onSurfaceVariant,
-      double? letterSpacing}) =>
-    GoogleFonts.inter(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        letterSpacing: letterSpacing);
+// ── Text styles ───────────────────────────────────────────────────────────────
+TextStyle _hanken({
+  double size = 14,
+  FontWeight weight = FontWeight.w400,
+  Color color = _primary,
+  double? letterSpacing,
+  double height = 1.4,
+}) => GoogleFonts.hankenGrotesk(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    letterSpacing: letterSpacing,
+    height: height);
+
+TextStyle _inter({
+  double size = 14,
+  FontWeight weight = FontWeight.w400,
+  Color color = _onSurfaceVariant,
+  double? letterSpacing,
+}) => GoogleFonts.inter(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    letterSpacing: letterSpacing);
 
 // ── HomeScreen ────────────────────────────────────────────────────────────────
-
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
-
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
@@ -63,6 +66,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _navIndex = 0;
   final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      final q = _searchController.text.trim().toLowerCase();
+      if (q != _query) setState(() => _query = q);
+    });
+  }
 
   @override
   void dispose() {
@@ -72,21 +85,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
-      statusBarColor: Colors.transparent,
-    ));
-
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+    );
     return Scaffold(
       backgroundColor: _bgSurface,
       extendBody: true,
       body: IndexedStack(
         index: _navIndex,
-        children: const [
-          _HomeTab(),
-          _FeedTabPlaceholder(),
-          _ProgramsTabPlaceholder(),
-          _JobsTabPlaceholder(),
-          _ProfileTabPlaceholder(),
+        children: [
+          _HomeTab(query: _query, searchController: _searchController),
+          const _FeedTabPlaceholder(),
+          const _ProgramsTabPlaceholder(),
+          const _JobsTabPlaceholder(),
+          const _ProfileTabPlaceholder(),
         ],
       ),
       bottomNavigationBar: _BottomNav(
@@ -98,25 +110,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 // ── Bottom Navigation ─────────────────────────────────────────────────────────
-
 class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.currentIndex, required this.onTap});
   final int currentIndex;
   final ValueChanged<int> onTap;
 
   static const _items = [
-    (icon: Icons.home_rounded, label: 'Home'),
+    (icon: Icons.home_rounded,        label: 'Home'),
     (icon: Icons.play_circle_rounded, label: 'Feed'),
-    (icon: Icons.school_rounded, label: 'Programs'),
-    (icon: Icons.work_rounded, label: 'Jobs'),
-    (icon: Icons.person_rounded, label: 'Profile'),
+    (icon: Icons.school_rounded,      label: 'Programs'),
+    (icon: Icons.work_rounded,        label: 'Jobs'),
+    (icon: Icons.person_rounded,      label: 'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _bgSurface.withValues(alpha: 0.92),
+        color: _bgSurface.withValues(alpha: 0.96),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
@@ -140,8 +151,7 @@ class _BottomNav extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: active
                         ? _secondary.withValues(alpha: 0.10)
@@ -179,44 +189,74 @@ class _BottomNav extends StatelessWidget {
 }
 
 // ── Home Tab ──────────────────────────────────────────────────────────────────
-
 class _HomeTab extends ConsumerWidget {
-  const _HomeTab();
+  const _HomeTab({
+    required this.query,
+    required this.searchController,
+  });
+  final String query;
+  final TextEditingController searchController;
+
+  bool _match(String text) =>
+      query.isEmpty || text.toLowerCase().contains(query);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final experts = ref.watch(expertsProvider);
-    final programs = ref.watch(programsProvider);
-    final videos = ref.watch(videosProvider);
-    final workshops = ref.watch(workshopsProvider);
-    final jobs = ref.watch(jobsProvider);
+    final screenW = MediaQuery.of(context).size.width;
+
+    final allExperts   = ref.watch(expertsProvider);
+    final allPrograms  = ref.watch(programsProvider);
+    final allVideos    = ref.watch(videosProvider);
+    final allWorkshops = ref.watch(workshopsProvider);
+    final allJobs      = ref.watch(jobsProvider);
+
+    // ── Live search filter ────────────────────────────────────────────────────
+    final experts = allExperts
+        .where((e) => _match(e.name) || _match(e.title) ||
+        e.tags.any(_match)).toList();
+    final programs = allPrograms
+        .where((p) => _match(p.title) || _match(p.description)).toList();
+    final videos = allVideos
+        .where((v) => _match(v.title) || _match(v.topic) ||
+        _match(v.expertName)).toList();
+    final workshops = allWorkshops
+        .where((w) => _match(w.title) || _match(w.host)).toList();
+    final jobs = allJobs
+        .where((j) => _match(j.title) || _match(j.company) ||
+        _match(j.type)).toList();
 
     return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
+      // ClampingScrollPhysics removes bounce overhead → smoother on Android
+      physics: const ClampingScrollPhysics(),
+      // Pre-renders 300px below viewport → zero pop-in lag on scroll
+      cacheExtent: 300,
       slivers: [
-        // ── Top App Bar ────────────────────────────────────────────────────
+        // ── App Bar ───────────────────────────────────────────────────────────
         SliverAppBar(
           pinned: true,
           floating: true,
-          backgroundColor: _bgSurface.withValues(alpha: 0.92),
+          snap: true,
+          backgroundColor: _bgSurface.withValues(alpha: 0.96),
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           shadowColor: Colors.black.withValues(alpha: 0.06),
           toolbarHeight: 64,
           title: Row(
             children: [
-              CircleAvatar(
+              const CircleAvatar(
                 radius: 16,
                 backgroundImage: NetworkImage(
                     'https://picsum.photos/seed/user1/80/80'),
               ),
               const Spacer(),
-              Text('Only Experts',
-                  style: _hanken(
-                      size: 20,
-                      weight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                      color: _primary)),
+              Text(
+                'Only Experts',
+                style: _hanken(
+                    size: 20,
+                    weight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                    color: _primary),
+              ),
               const Spacer(),
               IconButton(
                 onPressed: () {},
@@ -231,10 +271,10 @@ class _HomeTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Search ──────────────────────────────────────────────────
+              // ── Search bar ────────────────────────────────────────────────
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 16),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -248,11 +288,31 @@ class _HomeTab extends ConsumerWidget {
                     ],
                   ),
                   child: TextField(
+                    controller: searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
                     decoration: InputDecoration(
                       hintText: 'Search experts, programs, videos...',
                       hintStyle: _inter(color: _outline),
-                      prefixIcon:
-                      const Icon(Icons.search_rounded, color: _outline),
+                      prefixIcon: const Icon(Icons.search_rounded,
+                          color: _outline),
+                      // Search button OR clear button
+                      suffixIcon: query.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.close_rounded,
+                            color: _outline, size: 20),
+                        onPressed: () {
+                          searchController.clear();
+                          FocusScope.of(context).unfocus();
+                        },
+                      )
+                          : IconButton(
+                        icon: const Icon(Icons.arrow_forward_rounded,
+                            color: _secondary, size: 20),
+                        onPressed: () =>
+                            FocusScope.of(context).unfocus(),
+                        tooltip: 'Search',
+                      ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 14),
@@ -261,70 +321,116 @@ class _HomeTab extends ConsumerWidget {
                 ),
               ),
 
-              // ── Featured Experts ─────────────────────────────────────────
-              _SectionHeader(title: 'Featured Experts', onSeeAll: () {}),
-              SizedBox(
-                height: 290,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: experts.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemBuilder: (_, i) => _ExpertCard(expert: experts[i]),
+              // ── No results empty state ────────────────────────────────────
+              if (query.isNotEmpty &&
+                  experts.isEmpty &&
+                  programs.isEmpty &&
+                  videos.isEmpty &&
+                  workshops.isEmpty &&
+                  jobs.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 40),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Icon(Icons.search_off_rounded,
+                            size: 52, color: _outline),
+                        const SizedBox(height: 12),
+                        Text('No results for "$query"',
+                            style: _hanken(
+                                size: 16,
+                                weight: FontWeight.w600,
+                                color: _onSurfaceVariant)),
+                        const SizedBox(height: 4),
+                        Text('Try a different keyword',
+                            style: _inter(size: 13, color: _outline)),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 28),
-
-              // ── Short Videos ─────────────────────────────────────────────
-              _SectionHeader(title: 'Short Videos', onSeeAll: () {}),
-              SizedBox(
-                height: 240,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: videos.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemBuilder: (_, i) => _VideoCard(video: videos[i]),
+              // ── Featured Experts ──────────────────────────────────────────
+              if (experts.isNotEmpty) ...[
+                _SectionHeader(title: 'Featured Experts', onSeeAll: () {}),
+                SizedBox(
+                  height: 290,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: experts.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                    itemBuilder: (_, i) => RepaintBoundary(
+                      child: _ExpertCard(
+                          expert: experts[i],
+                          cardWidth: _expertCardWidth(screenW)),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 28),
+              ],
 
-              const SizedBox(height: 28),
-
-              // ── AI Programs ──────────────────────────────────────────────
-              _SectionHeader(title: 'AI Programs', onSeeAll: () {}),
-              ...programs.map((p) => Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: _ProgramCard(program: p),
-              )),
-
-              const SizedBox(height: 28),
-
-              // ── Workshops ────────────────────────────────────────────────
-              _SectionHeader(title: 'Workshops', onSeeAll: () {}),
-              SizedBox(
-                height: 200,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: workshops.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemBuilder: (_, i) =>
-                      _WorkshopCard(workshop: workshops[i]),
+              // ── Short Videos ──────────────────────────────────────────────
+              if (videos.isNotEmpty) ...[
+                _SectionHeader(title: 'Short Videos', onSeeAll: () {}),
+                SizedBox(
+                  height: 260,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: videos.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                    itemBuilder: (_, i) => RepaintBoundary(
+                      child: _VideoCard(
+                          video: videos[i],
+                          cardWidth: _videoCardWidth(screenW)),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 28),
+              ],
 
-              const SizedBox(height: 28),
+              // ── AI Programs ───────────────────────────────────────────────
+              if (programs.isNotEmpty) ...[
+                _SectionHeader(title: 'AI Programs', onSeeAll: () {}),
+                ...programs.map((p) => Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: RepaintBoundary(child: _ProgramCard(program: p)),
+                )),
+                const SizedBox(height: 28),
+              ],
 
-              // ── Career Opportunities ─────────────────────────────────────
-              _SectionHeader(title: 'Career Opportunities', onSeeAll: () {}),
-              ...jobs.map((j) => Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: _JobCard(job: j),
-              )),
+              // ── Workshops ─────────────────────────────────────────────────
+              if (workshops.isNotEmpty) ...[
+                _SectionHeader(title: 'Workshops', onSeeAll: () {}),
+                SizedBox(
+                  height: 200,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: workshops.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                    itemBuilder: (_, i) => RepaintBoundary(
+                      child: _WorkshopCard(
+                          workshop: workshops[i],
+                          cardWidth: _workshopCardWidth(screenW)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+              ],
+
+              // ── Career Opportunities ──────────────────────────────────────
+              if (jobs.isNotEmpty) ...[
+                _SectionHeader(title: 'Career Opportunities', onSeeAll: () {}),
+                ...jobs.map((j) => Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: RepaintBoundary(child: _JobCard(job: j)),
+                )),
+              ],
 
               const SizedBox(height: 100),
             ],
@@ -336,7 +442,6 @@ class _HomeTab extends ConsumerWidget {
 }
 
 // ── Section Header ────────────────────────────────────────────────────────────
-
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title, required this.onSeeAll});
   final String title;
@@ -351,14 +456,11 @@ class _SectionHeader extends StatelessWidget {
         children: [
           Text(title,
               style: _hanken(
-                  size: 18,
-                  weight: FontWeight.w700,
-                  letterSpacing: -0.2)),
+                  size: 18, weight: FontWeight.w700, letterSpacing: -0.2)),
           TextButton(
             onPressed: onSeeAll,
             style: TextButton.styleFrom(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               foregroundColor: _secondary,
             ),
             child: Text('See All',
@@ -375,15 +477,15 @@ class _SectionHeader extends StatelessWidget {
 }
 
 // ── Expert Card ───────────────────────────────────────────────────────────────
-
 class _ExpertCard extends StatelessWidget {
-  const _ExpertCard({required this.expert});
+  const _ExpertCard({required this.expert, required this.cardWidth});
   final ExpertEntity expert;
+  final double cardWidth;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 200,
+      width: cardWidth,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -399,7 +501,6 @@ class _ExpertCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cover image
           Stack(
             children: [
               Image.network(
@@ -407,6 +508,7 @@ class _ExpertCard extends StatelessWidget {
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                cacheWidth: 400,
                 errorBuilder: (_, __, ___) => Container(
                   height: 120,
                   color: _surfaceContainerHigh,
@@ -414,7 +516,6 @@ class _ExpertCard extends StatelessWidget {
                       size: 40, color: _outline),
                 ),
               ),
-              // gradient overlay
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -443,13 +544,12 @@ class _ExpertCard extends StatelessWidget {
                         color: Colors.white, size: 12),
                   ),
                 ),
-              // rating chip
               Positioned(
                 bottom: 8,
                 left: 10,
                 child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(20),
@@ -480,16 +580,13 @@ class _ExpertCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: _hanken(
-                        size: 14,
-                        weight: FontWeight.w700,
-                        color: _primary)),
+                        size: 14, weight: FontWeight.w700, color: _primary)),
                 const SizedBox(height: 2),
                 Text(expert.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: _inter(size: 12, color: _onSurfaceVariant)),
                 const SizedBox(height: 8),
-                // tags
                 Wrap(
                   spacing: 5,
                   runSpacing: 4,
@@ -539,70 +636,172 @@ class _ExpertCard extends StatelessWidget {
 }
 
 // ── Video Card ────────────────────────────────────────────────────────────────
-
-class _VideoCard extends ConsumerStatefulWidget {
-  const _VideoCard({required this.video});
+class _VideoCard extends ConsumerWidget {
+  const _VideoCard({required this.video, required this.cardWidth});
   final VideoEntity video;
+  final double cardWidth;
 
-  @override
-  ConsumerState<_VideoCard> createState() => _VideoCardState();
-}
-
-class _VideoCardState extends ConsumerState<_VideoCard> {
-  bool _playing = false;
-  WebViewController? _controller;
-
-  void _initController() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
-      ..loadRequest(Uri.parse(
-          '${widget.video.videoUrl}?autoplay=1&rel=0&modestbranding=1'));
-  }
-
-  void _handleTap() {
-    final isUnlocked =
-    ref.read(unlockedVideosProvider).contains(widget.video.id);
-
-    if (widget.video.isPremium && !isUnlocked) {
-      _showUnlockSheet();
+  void _handleTap(BuildContext context, WidgetRef ref) {
+    final isUnlocked = ref.read(unlockedVideosProvider).contains(video.id);
+    if (video.isPremium && !isUnlocked) {
+      _showUnlockSheet(context, ref);
       return;
     }
-
-    if (!_playing) {
-      _initController();
-    }
-    setState(() => _playing = !_playing);
+    _openVideoDialog(context);
   }
 
-  void _showUnlockSheet() {
+  /// Full-screen dialog with embedded YouTube WebView player
+  void _openVideoDialog(BuildContext context) {
+    // Build an HTML page that embeds YouTube with proper iframe attributes.
+    // loadHtmlString() bypasses the autoplay restriction that loadRequest() hits.
+    final embedUrl =
+        '${video.videoUrl}?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+
+    final html = '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; width: 100vw; height: 100vh; }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <iframe
+    src="$embedUrl"
+    allow="autoplay; fullscreen; encrypted-media"
+    allowfullscreen>
+  </iframe>
+</body>
+</html>
+''';
+
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.black)
+      ..loadHtmlString(html);   // ✅ loadHtmlString instead of loadRequest
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 60),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                color: const Color(0xFF1A1A2E),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        video.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _hanken(
+                            size: 14,
+                            weight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 16:9 player
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: WebViewWidget(controller: controller),
+              ),
+              // Footer
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10),
+                color: const Color(0xFF1A1A2E),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundImage: NetworkImage(video.expertImageUrl),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(video.expertName,
+                          style: _inter(size: 12, color: Colors.white70)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _secondary.withValues(alpha: 0.30),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(video.topic,
+                          style: _inter(
+                              size: 10,
+                              weight: FontWeight.w600,
+                              color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUnlockSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => _UnlockSheet(
-        videoTitle: widget.video.title,
+        videoTitle: video.title,
         onUnlock: () {
           ref.read(unlockedVideosProvider.notifier).update(
-                (s) => {...s, widget.video.id},
+                (s) => {...s, video.id},
           );
           Navigator.pop(context);
-          _initController();
-          setState(() => _playing = true);
+          _openVideoDialog(context);
         },
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    final isUnlocked =
-    ref.watch(unlockedVideosProvider).contains(widget.video.id);
-    final locked = widget.video.isPremium && !isUnlocked;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isUnlocked = ref.watch(unlockedVideosProvider).contains(video.id);
+    final locked = video.isPremium && !isUnlocked;
 
     return GestureDetector(
-      onTap: _handleTap,
+      onTap: () => _handleTap(context, ref),
       child: Container(
-        width: 220,
+        width: cardWidth,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -616,59 +815,55 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
+          mainAxisSize: MainAxisSize.min,   // ✅ KEY FIX — don't force max height
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Video / Thumbnail ────────────────────────────────────────
+            // Thumbnail
             SizedBox(
               height: 130,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (_playing && _controller != null)
-                    WebViewWidget(controller: _controller!)
-                  else ...[
-                    Image.network(
-                      widget.video.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: _primary,
-                        child: const Icon(Icons.play_circle_outline_rounded,
-                            color: Colors.white54, size: 40),
-                      ),
+                  Image.network(
+                    video.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    cacheWidth: 440,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: _primary,
+                      child: const Icon(Icons.play_circle_outline_rounded,
+                          color: Colors.white54, size: 40),
                     ),
-                    // play overlay
-                    if (!locked)
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.play_arrow_rounded,
-                              color: Colors.white, size: 24),
-                        ),
-                      ),
-                    // duration
-                    Positioned(
-                      bottom: 6,
-                      right: 8,
+                  ),
+                  if (!locked)
+                    Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.65),
-                          borderRadius: BorderRadius.circular(4),
+                          color: Colors.black.withValues(alpha: 0.52),
+                          shape: BoxShape.circle,
                         ),
-                        child: Text(widget.video.duration,
-                            style: _inter(
-                                size: 10,
-                                weight: FontWeight.w600,
-                                color: Colors.white)),
+                        child: const Icon(Icons.play_arrow_rounded,
+                            color: Colors.white, size: 26),
                       ),
                     ),
-                  ],
-                  // ── Premium lock overlay ─────────────────────────────
+                  Positioned(
+                    bottom: 6,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(video.duration,
+                          style: _inter(
+                              size: 10,
+                              weight: FontWeight.w600,
+                              color: Colors.white)),
+                    ),
+                  ),
                   if (locked)
                     Container(
                       decoration: BoxDecoration(
@@ -704,7 +899,6 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
                         ],
                       ),
                     ),
-                  // ── Topic chip ───────────────────────────────────────
                   Positioned(
                     top: 8,
                     left: 8,
@@ -715,7 +909,7 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
                         color: _secondary.withValues(alpha: 0.88),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(widget.video.topic,
+                      child: Text(video.topic,
                           style: _inter(
                               size: 10,
                               weight: FontWeight.w600,
@@ -725,13 +919,13 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
                 ],
               ),
             ),
-            // ── Info ─────────────────────────────────────────────────────
+            // Info
             Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.video.title,
+                  Text(video.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: _hanken(
@@ -744,12 +938,11 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
                     children: [
                       CircleAvatar(
                         radius: 10,
-                        backgroundImage:
-                        NetworkImage(widget.video.expertImageUrl),
+                        backgroundImage: NetworkImage(video.expertImageUrl),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text(widget.video.expertName,
+                        child: Text(video.expertName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: _inter(size: 11, color: _onSurfaceVariant)),
@@ -757,7 +950,7 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
                       const Icon(Icons.favorite_border_rounded,
                           size: 14, color: _outline),
                       const SizedBox(width: 3),
-                      Text(_formatLikes(widget.video.likes),
+                      Text(_formatLikes(video.likes),
                           style: _inter(size: 10, color: _outline)),
                     ],
                   ),
@@ -766,7 +959,7 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.tonal(
-                        onPressed: _showUnlockSheet,
+                        onPressed: () => _showUnlockSheet(context, ref),
                         style: FilledButton.styleFrom(
                           backgroundColor: _premiumGoldLight,
                           foregroundColor: _premiumGold,
@@ -796,10 +989,8 @@ class _VideoCardState extends ConsumerState<_VideoCard> {
 }
 
 // ── Unlock Sheet ──────────────────────────────────────────────────────────────
-
 class _UnlockSheet extends StatelessWidget {
-  const _UnlockSheet(
-      {required this.videoTitle, required this.onUnlock});
+  const _UnlockSheet({required this.videoTitle, required this.onUnlock});
   final String videoTitle;
   final VoidCallback onUnlock;
 
@@ -818,10 +1009,8 @@ class _UnlockSheet extends StatelessWidget {
           Container(
             width: 56,
             height: 56,
-            decoration: BoxDecoration(
-              color: _premiumGoldLight,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(
+                color: _premiumGoldLight, shape: BoxShape.circle),
             child: const Icon(Icons.lock_open_rounded,
                 color: _premiumGold, size: 28),
           ),
@@ -832,11 +1021,9 @@ class _UnlockSheet extends StatelessWidget {
           const SizedBox(height: 8),
           Text(videoTitle,
               textAlign: TextAlign.center,
-              style:
-              _inter(size: 14, color: _onSurfaceVariant)),
+              style: _inter(size: 14, color: _onSurfaceVariant)),
           const SizedBox(height: 4),
-          Text(
-              'This video is exclusively available to premium members.',
+          Text('This video is exclusively available to premium members.',
               textAlign: TextAlign.center,
               style: _inter(size: 13, color: _outline)),
           const SizedBox(height: 24),
@@ -862,9 +1049,7 @@ class _UnlockSheet extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: Text('Maybe later',
                 style: _inter(
-                    size: 13,
-                    weight: FontWeight.w500,
-                    color: _outline)),
+                    size: 13, weight: FontWeight.w500, color: _outline)),
           ),
         ],
       ),
@@ -873,7 +1058,6 @@ class _UnlockSheet extends StatelessWidget {
 }
 
 // ── Program Card ──────────────────────────────────────────────────────────────
-
 class _ProgramCard extends StatelessWidget {
   const _ProgramCard({required this.program});
   final ProgramEntity program;
@@ -896,7 +1080,6 @@ class _ProgramCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // icon block
           Container(
             width: 90,
             height: 90,
@@ -938,7 +1121,7 @@ class _ProgramCard extends StatelessWidget {
                               style: _inter(
                                   size: 9,
                                   weight: FontWeight.w700,
-                                  color: Color(0xFF166534),
+                                  color: const Color(0xFF166534),
                                   letterSpacing: 0.4)),
                         ),
                     ],
@@ -951,7 +1134,7 @@ class _ProgramCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(Icons.schedule_rounded,
+                      const Icon(Icons.schedule_rounded,
                           size: 13, color: _outline),
                       const SizedBox(width: 4),
                       Text(program.duration,
@@ -1003,15 +1186,15 @@ class _ProgramCard extends StatelessWidget {
 }
 
 // ── Workshop Card ─────────────────────────────────────────────────────────────
-
 class _WorkshopCard extends StatelessWidget {
-  const _WorkshopCard({required this.workshop});
+  const _WorkshopCard({required this.workshop, required this.cardWidth});
   final WorkshopEntity workshop;
+  final double cardWidth;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 240,
+      width: cardWidth,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1034,6 +1217,7 @@ class _WorkshopCard extends StatelessWidget {
                 height: 100,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                cacheWidth: 480,
                 errorBuilder: (_, __, ___) => Container(
                     height: 100,
                     color: _secondary.withValues(alpha: 0.12)),
@@ -1045,8 +1229,9 @@ class _WorkshopCard extends StatelessWidget {
                   padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color:
-                    workshop.isFree ? const Color(0xFF059669) : _premiumGold,
+                    color: workshop.isFree
+                        ? const Color(0xFF059669)
+                        : _premiumGold,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(workshop.isFree ? 'FREE' : 'PAID',
@@ -1091,9 +1276,7 @@ class _WorkshopCard extends StatelessWidget {
                     Text('${workshop.spotsLeft} spots left',
                         style: _inter(
                             size: 10,
-                            color: workshop.spotsLeft <= 5
-                                ? _error
-                                : _outline,
+                            color: workshop.spotsLeft <= 5 ? _error : _outline,
                             weight: FontWeight.w600)),
                   ],
                 ),
@@ -1107,7 +1290,6 @@ class _WorkshopCard extends StatelessWidget {
 }
 
 // ── Job Card ──────────────────────────────────────────────────────────────────
-
 class _JobCard extends StatelessWidget {
   const _JobCard({required this.job});
   final JobEntity job;
@@ -1141,9 +1323,7 @@ class _JobCard extends StatelessWidget {
               children: [
                 Text(job.title,
                     style: _hanken(
-                        size: 15,
-                        weight: FontWeight.w700,
-                        color: _primary)),
+                        size: 15, weight: FontWeight.w700, color: _primary)),
                 const SizedBox(height: 2),
                 Text('${job.company} · ${job.location}',
                     style: _inter(size: 12, color: _onSurfaceVariant)),
@@ -1152,11 +1332,13 @@ class _JobCard extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 4,
                   children: [
-                    _Chip(job.type, bgColor: _secondary.withValues(alpha: 0.10), textColor: _secondary),
+                    _Chip(job.type,
+                        bgColor: _secondary.withValues(alpha: 0.10),
+                        textColor: _secondary),
                     if (job.isRemote)
-                      _Chip('Remote',
-                          bgColor: const Color(0xFFDCFCE7),
-                          textColor: const Color(0xFF166534)),
+                      const _Chip('Remote',
+                          bgColor: Color(0xFFDCFCE7),
+                          textColor: Color(0xFF166534)),
                     _Chip(job.salary,
                         bgColor: _surfaceContainerLow,
                         textColor: _onSurfaceVariant),
@@ -1168,8 +1350,7 @@ class _JobCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(job.postedAgo,
-                  style: _inter(size: 10, color: _outline)),
+              Text(job.postedAgo, style: _inter(size: 10, color: _outline)),
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: () {},
@@ -1180,9 +1361,7 @@ class _JobCard extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                   textStyle: _inter(
-                      size: 12,
-                      weight: FontWeight.w600,
-                      color: Colors.white),
+                      size: 12, weight: FontWeight.w600, color: Colors.white),
                 ),
                 child: const Text('Apply'),
               ),
@@ -1210,19 +1389,17 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(label,
-          style: _inter(
-              size: 10, weight: FontWeight.w600, color: textColor)),
+          style: _inter(size: 10, weight: FontWeight.w600, color: textColor)),
     );
   }
 }
 
 // ── Placeholder tabs ──────────────────────────────────────────────────────────
-
 class _FeedTabPlaceholder extends StatelessWidget {
   const _FeedTabPlaceholder();
   @override
-  Widget build(BuildContext context) => const Center(
-      child: Text('Video Feed — coming next'));
+  Widget build(BuildContext context) =>
+      const Center(child: Text('Video Feed — coming next'));
 }
 
 class _ProgramsTabPlaceholder extends StatelessWidget {
@@ -1261,7 +1438,6 @@ class _ProfileTabPlaceholder extends ConsumerWidget {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
 Color _hexColor(String hex) {
   final h = hex.replaceAll('#', '');
   return Color(int.parse('FF$h', radix: 16));
